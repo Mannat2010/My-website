@@ -3,126 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MortalConverter | Universal File Bridge</title>
-    
-    <script src="coi-serviceworker.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+    <title>Universal Bridge | No-Error Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
+    
     <style>
-        :root {
-            --bg: #ffffff; --card: #f8f9fa; --text: #1a1a1a; --primary: #007aff;
-        }
-        [data-theme="dark"] {
-            --bg: #121212; --card: #1e1e1e; --text: #ffffff; --primary: #0a84ff;
-        }
-        body { 
-            background: var(--bg); color: var(--text); 
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            transition: 0.3s; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0;
-        }
-        .container {
-            background: var(--card); padding: 40px; border-radius: 24px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 400px; text-align: center;
-        }
-        .mode-toggle { position: absolute; top: 20px; right: 20px; cursor: pointer; padding: 10px; border-radius: 50%; border: 1px solid #ccc; background: var(--card); color: var(--text); }
-        h1 { font-size: 24px; margin-bottom: 10px; }
-        .drop-zone {
-            border: 2px dashed var(--primary); padding: 30px; border-radius: 15px; margin: 20px 0;
-            transition: 0.2s; cursor: pointer;
-        }
-        .drop-zone:hover { background: rgba(0, 122, 255, 0.1); }
-        select, button {
-            width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ddd;
-            background: var(--bg); color: var(--text); font-size: 16px;
-        }
-        .btn-convert { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; display: none; }
-        #status { margin-top: 20px; font-size: 14px; opacity: 0.8; }
-        .progress-bar { height: 4px; width: 0%; background: var(--primary); margin-top: 10px; transition: 0.3s; border-radius: 2px; }
+        /* (Keep the same CSS from before - it looks great!) */
+        :root { --bg: #ffffff; --card: #f8f9fa; --text: #1a1a1a; --primary: #007aff; }
+        [data-theme="dark"] { --bg: #121212; --card: #1e1e1e; --text: #ffffff; --primary: #0a84ff; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; transition: 0.3s; }
+        .container { background: var(--card); padding: 40px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 350px; text-align: center; }
+        .drop-zone { border: 2px dashed var(--primary); padding: 30px; border-radius: 15px; margin: 20px 0; cursor: pointer; }
+        select, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ddd; background: var(--bg); color: var(--text); }
+        .btn-convert { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
     </style>
 </head>
-<body data-theme="light">
+<body data-theme="dark">
 
-    <button class="mode-toggle" onclick="toggleTheme()">🌓</button>
+<div class="container">
+    <h1>🌍 Universal Bridge</h1>
+    <p>Privacy-First. Local Conversion.</p>
 
-    <div class="container">
-        <h1>🌍 Universal Bridge</h1>
-        <p>Convert 100+ formats safely.</p>
-
-        <div class="drop-zone" onclick="document.getElementById('upload').click()">
-            Drag & Drop or Click to Upload
-            <input type="file" id="upload" multiple style="display:none">
-        </div>
-
-        <label>Convert all to:</label>
-        <select id="outputFormat">
-            <optgroup label="Images">
-                <option value="jpg">JPG (Standard)</option>
-                <option value="png">PNG (Clear)</option>
-            </optgroup>
-            <optgroup label="Video/Audio">
-                <option value="mp4">MP4 (Video)</option>
-                <option value="mp3">MP3 (Audio)</option>
-            </optgroup>
-        </select>
-
-        <button id="convertBtn" class="btn-convert" onclick="processFiles()">Start Conversion</button>
-        
-        <div id="status">Ready</div>
-        <div class="progress-bar" id="progress"></div>
-        <a id="dl" style="display:none; margin-top:20px; color:var(--primary); font-weight:bold; text-decoration:none;">Download Result ZIP</a>
+    <div class="drop-zone" onclick="document.getElementById('upload').click()">
+        Click to Upload Files
+        <input type="file" id="upload" multiple style="display:none">
     </div>
 
+    <select id="outputFormat">
+        <option value="image/jpeg">Convert to JPG (Standard)</option>
+        <option value="image/png">Convert to PNG (High Quality)</option>
+        <option value="image/webp">Convert to WebP (Modern)</option>
+    </select>
+
+    <button class="btn-convert" onclick="startConversion()">Start Converting</button>
+    <div id="status" style="margin-top:15px;">Ready</div>
+    <a id="dl" style="display:none; margin-top:15px; color:var(--primary); font-weight:bold; text-decoration:none;">Download ZIP</a>
+</div>
+
 <script>
-    const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: true });
-
-    function toggleTheme() {
-        const body = document.body;
-        body.dataset.theme = body.dataset.theme === "dark" ? "light" : "dark";
-    }
-
-    document.getElementById('upload').addEventListener('change', () => {
-        document.getElementById('convertBtn').style.display = 'block';
-        document.getElementById('status').innerText = `${document.getElementById('upload').files.length} files selected.`;
-    });
-
-    async function processFiles() {
+    async function startConversion() {
         const files = Array.from(document.getElementById('upload').files);
         const format = document.getElementById('outputFormat').value;
         const status = document.getElementById('status');
-        const progress = document.getElementById('progress');
         const zip = new JSZip();
 
-        status.innerText = "Initializing Engine...";
-        if (!ffmpeg.isLoaded()) await ffmpeg.load();
+        if (files.length === 0) return alert("Select files first!");
 
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            const name = file.name.split('.').slice(0, -1).join('.');
+        for (let file of files) {
             status.innerText = `Processing: ${file.name}`;
-            progress.style.width = `${((i + 1) / files.length) * 100}%`;
-
+            
+            let resultBlob;
+            
+            // 1. APPLE HEIC LOGIC
             if (file.name.toLowerCase().endsWith('.heic')) {
-                const blob = await heic2any({ blob: file, toType: "image/jpeg" });
-                zip.file(`${name}.jpg`, blob);
-            } else {
-                ffmpeg.FS('writeFile', 'input', await fetchFile(file));
-                await ffmpeg.run('-i', 'input', `out.${format}`);
-                const data = ffmpeg.FS('readFile', `out.${format}`);
-                zip.file(`${name}.${format}`, data.buffer);
+                resultBlob = await heic2any({ blob: file, toType: format });
+            } 
+            // 2. UNIVERSAL IMAGE LOGIC (Our own "Canvas" Converter)
+            else {
+                resultBlob = await convertImageWithCanvas(file, format);
             }
+
+            const extension = format.split('/')[1].replace('jpeg', 'jpg');
+            const newName = file.name.split('.')[0] + "." + extension;
+            zip.file(newName, resultBlob);
         }
 
-        status.innerText = "Creating ZIP...";
-        const content = await zip.generateAsync({type:"blob"});
+        status.innerText = "Zipping...";
+        const zipFile = await zip.generateAsync({type: "blob"});
         const dl = document.getElementById('dl');
-        dl.href = URL.createObjectURL(content);
+        dl.href = URL.createObjectURL(zipFile);
         dl.download = "Converted_Files.zip";
         dl.style.display = "block";
-        dl.innerText = "📥 Download Your Files";
-        status.innerText = "Success!";
+        dl.innerText = "📥 Download All Files";
+        status.innerText = "Done!";
+    }
+
+    // THIS IS YOUR CUSTOM BUILT CONVERTER ENGINE
+    function convertImageWithCanvas(file, type) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    canvas.toBlob((blob) => resolve(blob), type);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
     }
 </script>
 </body>
