@@ -1,24 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="coi-serviceworker.js"></script>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Simple Links</title>
+    <title>Apple to Windows Bridge</title>
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+    
     <style>
-        body { font-family: sans-serif; background: #f4f4f4; text-align: center; padding: 50px; }
-        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { color: #333; }
-        .link { display: block; background: #007bff; color: white; padding: 15px; margin: 10px 0; text-decoration: none; border-radius: 8px; font-weight: bold; }
-        .link:hover { background: #0056b3; }
+        body { font-family: sans-serif; text-align: center; background: #f0f2f5; padding: 50px; }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: inline-block; max-width: 90%; }
+        input { margin: 20px 0; }
+        #status { margin-top: 15px; color: #555; font-weight: bold; }
+        .download-btn { background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: none; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>My Cool Project</h1>
-        <p>Software & Code Solutions</p>
-        <a href="https://github.com" class="link">My GitHub Portfolio</a>
-        <a href="#" class="link">Services I Offer</a>
-        <a href="#" class="link">Contact Me</a>
-    </div>
+
+<div class="card">
+    <h1>🍏 Apple File Bridge</h1>
+    <p>Convert iPhone photos (.HEIC) to Windows-friendly (.JPG)</p>
+    
+    <input type="file" id="upload" accept=".heic">
+    <br>
+    <div id="status">Select an Apple HEIC file to begin...</div>
+    <br>
+    <a id="downloadLink" class="download-btn">Download JPG</a>
+</div>
+
+<script>
+    const upload = document.getElementById('upload');
+    const status = document.getElementById('status');
+    const downloadLink = document.getElementById('downloadLink');
+
+    upload.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        status.innerText = "Converting... please wait (this happens on your device)";
+        
+        try {
+            // This is the 'heic2any' tool working
+            const blob = await heic2any({
+                blob: file,
+                toType: "image/jpeg",
+                quality: 0.8
+            });
+
+            // Create a download link for the new JPG
+            const url = URL.createObjectURL(blob);
+            downloadLink.href = url;
+            downloadLink.download = file.name.replace(".heic", ".jpg");
+            downloadLink.style.display = "inline-block";
+            
+            status.innerText = "Success! Your file is ready.";
+        } catch (error) {
+            console.error(error);
+            status.innerText = "Error: Make sure it's a real .HEIC file.";
+        }
+    });
+    const targetFormat = document.getElementById('outputFormat').value;
+
+// Inside your loop, change the 'toType'
+const convertedBlob = await heic2any({
+    blob: file,
+    toType: targetFormat, 
+    quality: 0.8
+});
+
+</script>
+
+<label for="format">Convert all to:</label>
+<select id="outputFormat">
+    <option value="image/jpeg">JPG (Best for Windows/Photos)</option>
+    <option value="image/png">PNG (Best for Quality)</option>
+    <option value="image/webp">WebP (Best for Websites)</option>
+</select>
+
 </body>
 </html>
